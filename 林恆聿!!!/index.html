@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!--重載-->
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+        <!--重載-->
+        <title>劈哩啪啦身份辨識魔法終端連接器</title>
+        <link rel="stylesheet" href="styles2.css">
+        <link rel="stylesheet" href="hover.css">
+        <link rel="stylesheet" href="animation.css">
+        <link rel="stylesheet" href="personalData.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <link rel="icon" sizes="180x180" href="./I'm-watching-you.png" type="image/png" />
+        <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./I'm-watching-you.png" type="image/png" />
+    </head>
+    <body>
+        <!--主選單-->
+        <div class="container" id="mainMenu">
+            <button id="closeBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="24" height="24">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <div class="userDetailGroup"><!--顯示用戶資訊-->
+                
+            </div>
+            <div id="userContainer" class="no-select">
+                <div id="top-section">
+                    <p id="userID" class="header"></p>
+                </div>
+                <div id="expand-container">
+                    <div class="expanded" id="expand-contract">
+                        <div class="user-action">
+                            <div class="detail">用戶資料</div>
+                            <hr class="line">
+                            <div class="logout">登出</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="button-group no-select">
+                <button id="toManageEvent">管理</button>
+                <button id="toJoinRecord">參加</button>
+            </div>
+        </div>
+
+        <!--舉辦紀錄-->
+        <div id="manageEvent" class="container hidden">
+            <button class="back-button" id="bckToMainMenuFrmManage">返回</button>
+            <h2 class="title">紀錄</h2>
+            <div class="legend">↓已舉辦的活動</div>
+            <div class="record-list" id="eventManagementList"></div>
+        </div>
+        <!--舉辦-->
+        <div id="createEvent" class="container hidden">
+            <button class="back-button" id="bckToManageEventFrmCreateEvent">返回</button>
+            <h2 class="title">舉辦</h2>
+            <input type="text" id="eventName" placeholder="輸入活動名稱">
+            <button id="createEventBtn">確認</button>
+            <p id="Message"></p>
+        </div>
+        <!--舉辦活動詳情-->
+        <div id="eventDetail" class="container hidden">
+            <button class="back-button" id="bckToManageEventFrmEventDetail">返回</button>
+            <h2 class="title"></h2>
+            <div class="legend">↓參與者</div>
+            <div id="checkInProgress"></div>
+            <button class="startButton" id="start">開始打卡</button>
+            <div class="record-list" id="EventDetailList"></div>
+        </div>
+        <!--打卡介面-->
+        <div id="checkIn" class="container hidden">
+            <button class="back-button" id="bckToEventDetailFrmCheckIn">返回</button>
+            <h2 class="title"></h2>
+            <div id="cameraContainer">
+                <video id="camera" autoplay playsinline></video>
+            </div>
+        </div>
+
+        <!--加入紀錄-->
+        <div id="joinRecord" class="container hidden">
+            <button class="back-button" id="bckToMainMenuFrmJoin">返回</button>
+            <h2 class="title">紀錄</h2>
+            <div class="record-list" id="checkInRecords"></div>
+        </div>
+        <!--加入-->
+        <div id="joinEvent" class="container hidden">
+            <button class="back-button" id="bckToManageEventFrmJoinEvent">返回</button>
+            <h2 class="title">加入</h2>
+            <input type="text" id="eventCode" placeholder="輸入活動代碼">
+            <button id="joinEventBtn">確認</button>
+            <p id="Message"></p>
+        </div>
+        <!--參加活動詳情-->
+        <div id="joinEventDetail" class="container hidden">
+            <button class="back-button" id="bckToJoinEventFrmJoinEventDetail">返回</button>
+            <h2 class="title"></h2>
+        </div>
+        
+        <!--個人資料頁面-->
+        <div class="PDcontainer container hidden" id="PDpersonalPage">
+                <div class="PDcard-header">
+                    <h2>用戶資料</h2>
+                </div>
+                <div class="PDcard-content">
+                    <div class="PDfield">
+                        <label for="PDusername">用戶名稱</label>
+                        <div class="PDfield-input PDrightItem" id="PDusername-container"></div>
+                    </div>
+                    <div class="PDfield">
+                        <label for="PDemail">電子郵件</label>
+                        <div id="PDemail" class="PDstatic-text PDrightItem"></div>
+                    </div>
+                    <div class="PDfield">
+                        <label for="PDpassword">密碼</label>
+                        <div class="PDfield-input PDrightItem" id="PDpassword-container"></div>
+                    </div>
+                    <div class="PDfield">
+                        <label for="PDregistrationDate">註冊日期</label>
+                        <div id="PDregistrationDate" class="PDstatic-text PDrightItem"></div>
+                    </div>
+                </div>
+        </div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+        <script type="module" src="script2.js"></script>
+    </body>
+</html>

@@ -1,0 +1,125 @@
+/*------------------------------------------------------------*/
+/*動態視窗高度*/
+:root {
+    --vh: 1vh;
+  }
+/*背景*/
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #698F99;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: calc(var(--vh) * 100);
+}
+/*------------------------------------------------------------*/
+/*容器*/
+.container {
+    background-color: #116f73;
+    padding: 20px 30px; /*設定內邊距*/
+    border-radius: 15px; /*設定圓角邊框*/
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /*設定陰影*/
+    text-align: center; /*文字置中對齊*/
+    max-height: 85%;
+    max-width: 90%;
+    height: 300px;
+    width: 300px;
+    position: relative; /*設定相對定位*/
+}
+
+/*------------------------------------------------------------*/
+/*標題*/
+.container h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #ffffff;
+}
+/*------------------------------------------------------------*/
+/*輸入框*/
+.container input {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #6aa7b6;
+    border-radius: 15px;
+    font-size: 16px;
+}
+/*------------------------------------------------------------*/
+/*按鈕*/
+.container button {
+    width: 100%;
+    padding: 10px;
+    background-color: #0071e3;
+    color: white;
+    border: none;
+    border-radius: 15px;
+    font-size: 16px;
+    cursor: pointer;
+}
+/*懸浮動畫*/
+.container button:hover {
+    background-color: #007bff;
+}
+/*------------------------------------------------------------*/
+/*切換介面按鈕*/
+.container a {
+    display: inline-block;
+    margin-top: 15px;
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 14px;
+}
+/*懸浮底線*/
+.container a:hover {
+    text-decoration: underline;
+}
+/*------------------------------------------------------------*/
+/*提示訊息*/
+#LoginMessage, #RegisterMessage {
+    font-size: 14px;
+    margin-top: 10px;
+}
+/* 新增成功與錯誤訊息樣式 */
+.message-success {
+    color: #00ff00;
+}
+.message-error {
+    color: #ff4d4d;
+}
+/*------------------------------------------------------------*/
+/*提示*/
+#promptContainer {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    height: 25px;
+    width: 25px;
+}
+#prompt{
+    position: absolute;
+    bottom: 0px;
+    right: 0px;
+    height: 25px;
+    width: 25px;
+    margin: 0 0 0 0;
+    background-color: #698F99;
+    color: #094244;
+    border-radius: 980px;
+}/*------------------------------------------------------------*/
+#promptIcon svg {
+    display: block;
+    margin: auto;
+    color: #094244;
+}
+/*------------------------------------------------------------*/
+/*選取禁止*/
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    cursor: default;
+}
+

@@ -1,0 +1,100 @@
+/*淡出動畫*/
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+.fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+/*淡入動畫*/
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+.fade-in {
+    animation: fadeIn 0.3s ease forwards;
+}
+/*------------------------------------------------------------*/
+/*擴張動畫*/
+@keyframes expand {
+    to {
+        top: 0px;
+        right: 0px;
+        margin: 0;
+        padding: 0;
+        height: calc(100% - 1px);
+        width: calc(100% - 1px);
+        border-radius: 30px;
+        background-color: #99BAC3;
+    }
+}
+.expand {
+    animation: expand 0.5s ease forwards;
+}
+@keyframes expand2 {
+    from {
+        height: calc(100% - 50px);
+        width: calc(100% - 50px);
+    }
+    to {
+        height: var(--target-height);
+        width: var(--target-width);
+        border-radius: 30px;
+        background-color: #99BAC3;
+    }
+}
+.expand2 {
+    animation: expand2 0.5s ease forwards;
+}
+/*------------------------------------------------------------*/
+/*登出擴張動畫*/
+@keyframes expandDesktop {
+    from {
+        height: 80%;
+        width: 90%;
+        background-color: #6aa7b6;
+        padding: 20px 20px;
+        border-radius: 30px;
+    }
+    to {
+        height: 300px;
+        width: 300px;
+        padding: 20px 30px;
+        border-radius: 15px;
+        background-color: #116f73;
+    }
+}
+@keyframes expandPhone {
+    from {
+        max-height: 85%;
+        height: 85%;
+        width: 80%; 
+        background-color: #6aa7b6;
+        padding: 20px 20px;
+        border-radius: 30px;
+    }
+    to {
+        height: 300px;
+        width: 300px;
+        padding: 20px 30px;
+        border-radius: 15px;
+        background-color: #116f73;
+        
+    }
+}
+.container.expand-logOut {
+    animation: expandDesktop 1.5s forwards;
+}
+@media (max-width: 700px) {
+    .container.expand-logOut {
+        animation: expandPhone 1.5s forwards;
+    }
+}

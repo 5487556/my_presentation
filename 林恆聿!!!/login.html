@@ -1,0 +1,52 @@
+
+ <!DOCTYPE html>
+<html lang="zh-TW">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- 重載 -->
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
+        <!-- 重載 -->
+        <title>登入與註冊</title>
+        <link rel="stylesheet" href="styles1.css">
+        <link rel="stylesheet" href="animation.css">
+
+        <link rel="icon" sizes="180x180" href="./I'm-watching-you.png" type="image/png" />
+        <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./I'm-watching-you.png" type="image/png" />
+    </head>
+    <body>
+        <div class="container no-select"> 
+            <!-- 登入畫面 (預設顯示) -->
+            <div id="loginPage" style="display: block;">
+                <h2>登入帳戶</h2>
+                <input type="email" id="loginEmail" placeholder="電子郵件">
+                <input type="password" id="loginPassword" placeholder="密碼">
+                <button onclick="login()">登入</button>
+                <a href="#" onclick="togglePage()">註冊新帳戶</a>
+                <p id="LoginMessage"></p>
+            </div>
+
+            <!-- 註冊畫面 (預設隱藏) -->
+            <div id="registerPage" style="display: none;">
+                <h2>註冊帳戶</h2>
+                <input type="text" id="registerUsername" placeholder="用戶名稱">
+                <input type="email" id="registerEmail" placeholder="電子郵件">
+                <input type="password" id="registerPassword" placeholder="密碼">
+                <button onclick="register()">註冊</button>
+                <a href="#" onclick="togglePage()">返回登入</a>
+                <p id="RegisterMessage"></p>
+                <div id="promptContainer">
+                    <p id="prompt">
+                        <span id="promptIcon">？</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 引入改進後的 script1.js -->
+        <script type="module" src="script1.js"></script>
+        <iframe src="https://harrylin0312.github.io/face-recognition/start/" style="width: 0; height: 0; border: none;" tabindex="-1" aria-hidden="true"></iframe>
+    </body>
+</html>

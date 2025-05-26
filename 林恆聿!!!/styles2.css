@@ -1,0 +1,427 @@
+/*------------------------------------------------------------*/
+/*動態視窗高度*/
+:root {
+    --vh: 1vh;
+  }
+/*背景*/
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background-color: #698F99;
+    display: flex;
+    justify-content: center;/*垂直方向置中對齊*/
+    align-items: center;/*水平方向置中對齊*/
+    height: calc(var(--vh) * 100);
+}
+/*------------------------------------------------------------*/
+/*預設容器樣式*/
+.container {
+    max-height: 80%;
+    max-width: 90%;
+    height: 80%;
+    width: 90%;
+    padding: 20px 20px;/*設定內邊距*/
+    background-color: #6aa7b6;
+    border-radius: 30px;/*設定圓角邊框*/
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);/*設定陰影*/
+    text-align: center;/*文字置中對齊*/
+    display: flex; 
+    flex-direction: column;/*設定子元素排列方向為垂直*/
+    justify-content: center;/*垂直方向置中對齊*/
+    align-items: center;/*水平方向置中對齊*/
+    position: relative;/*定位錨點*/
+}
+/*手機版容器樣式*/
+@media(max-width:700px){
+    .container {
+        max-height: 85%;
+        height: 85%;
+        width: 80%;
+    }
+}
+/*------------------------------------------------------------*/
+.title {/*-標題*/
+    font-size: 4em;
+    position: absolute;
+    top: 15%;
+    transform: translateY(-50%);/*自身高度校正*/
+    color:#1e1e1e;
+}
+/*------------------------------------------------------------*/
+/*按鈕群組*/
+.button-group {
+    display: flex;
+    justify-content: center;
+    gap: 12vw;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);/*自身高度校正*/
+}
+/*按鈕*/
+button {
+    background-color: white;
+    color: #333;
+    border: none;
+    border-radius: 980px;
+    padding: 20px 40px;
+    font-size: 2.5em;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+@media(max-width:700px){
+    .button-group{
+        gap: 10vw;
+        font-size: 0.8em;
+    }
+    button{
+        padding: 15px 30px;
+    }
+}
+/* 確認按鈕定位 */
+#createEventBtn,
+#joinEventBtn {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2em;
+}
+/*------------------------------------------------------------*/
+/*輸入框*/
+input {
+    width: 60%;
+    padding: 12px;
+    margin: 0;
+    border: 1px solid #ccc;
+    border-radius: 980px;
+    font-size: 1.5em;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+@media(max-width:700px){/*手機版樣式*/
+    input{
+        width: 90%;
+    }
+}
+/*------------------------------------------------------------*/
+/*隱藏*/
+.hidden {
+    display: none;
+}
+/*------------------------------------------------------------*/
+/*顯示清單*/
+.record-list {
+    top: -9%;
+    left: 0%;
+    transform: translateY(50%);
+    width: 50%;/*寬度*/
+    max-height: 59%;/*最大高度*/
+    padding: 10px;/*內邊距*/
+    background-color: #6aa7b600;
+    overflow-y: auto;/*垂直方向內容過多時自動出現捲軸*/
+    font-size: 1.5em;
+    position: relative; /*設定相對定位*/
+}
+@media(max-width:700px) {/*手機版樣式*/
+    .record-list {
+        width: 105%;
+        border-radius: 30px;
+    }
+}
+/*record-item內部排版*//*舉辦清單*/
+.record-item {
+    display: flex; 
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 25px;
+    background-color: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15); /*陰影*/
+    padding: 30px 20px; /* 內邊距 */
+    margin: 20px 0; /* 每列之間留間隔 */
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: pointer;
+}
+@media(max-width:700px) {/*手機版樣式*/
+    .record-item {
+    padding: 20px 20px; /* 內邊距 */
+    margin: 18px 0; /* 每列之間留間隔 */
+    }
+}
+/*活動名稱*/
+.record-item .eventName {
+    font-size: 1em;
+    flex: 1; /* 比 eventDate 稍寬 */
+    text-align: left;
+    color: #000000;
+}
+/*活動日期*/
+.record-item .eventDate {
+    font-size: 0.7em;
+    color: #575757;
+    text-align: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+/*刪除活動*/
+.record-item .btnDeleteEvent {
+    font-size: 0.7em;
+    color: #ce1414;
+    text-align: center;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+/*活動ID*/
+.record-item .eventID {
+    font-size: 0.5em;
+    color: #575757;
+    text-align: right;
+    flex: 1;
+}
+/*箭頭*/
+.record-item .arrow {
+    font-size: 1em;
+    color: #575757b0;
+    text-align: right;
+    flex: 0.05;
+    font-weight:lighter;
+}
+/*舉辦活動按鈕樣式*/
+.record-item .btnCreateEvent {
+    font-size: 1em;
+    flex: 1;
+    text-align: center;
+    color: rgba(0, 0, 0, 0.5);
+}
+.record-item .btnJoinEvent {
+    font-size: 1em;
+    flex: 1;
+    text-align: center;
+    color: rgba(0, 0, 0, 0.5);
+}
+.delete-button {
+    background-color: rgba(255, 100, 100, 0.2);
+    border: 1px solid red;
+    color: rgba(255, 0, 0, 0.7);
+    cursor: pointer;
+    width: 15%;
+    margin: 0 auto;
+    padding: 20px 20px;
+}
+
+@media (max-width: 700px) {
+    .delete-button {
+        width: 30%;
+    }
+}
+/*------------------------------------------------------------*/
+.red { color: rgb(238, 4, 4); }
+.green { color: green; }
+/*------------------------------------------------------------*/
+/*輸入提示訊息*//*暫時*/
+#Message {
+    font-size: 14px;
+}
+/*------------------------------------------------------------*/
+/*用戶資訊*/
+#userContainer {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    border:1px solid rgba(255, 255, 255, 0.45);
+    padding: 0 0;
+    border-radius: 20px;
+    font-size: 20px;
+    z-index: 1000;/*確保在最上層*/
+    background-color: rgba(210, 210, 210, 0.75);
+}
+#userContainer .expanded {
+    display: none;
+    padding : 0px;
+}
+#userID {/**/
+    padding: 5px 10px;
+    margin: 0 0;
+    border-radius: 20px;
+    background-color: rgba(255, 255, 255, 0.65);
+}
+.header {
+    background-color:#d3d3d3;
+    padding: 2px;
+    cursor: pointer;
+    font-weight: bold;
+}
+#expand-container {
+    width: 100%;
+    transition: height 0.3s ease;
+    cursor: pointer;
+}
+#expand-contract {
+    margin: 2px 0;;
+}
+.logout, 
+.detail {
+    color: #000000;
+}
+.line {
+    padding: 0 0;
+    margin: 0 0;
+    color: rgba(55, 55, 55, 0.60);
+}
+#closeBtn {
+    height: 40px;
+    width: 40px;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 20px 20px;
+    background-color: #698F99;
+    border-radius: 980px;
+    font-size: 20px;
+    color: white;
+    display: none;
+    z-index: 2000
+}
+#closeBtn svg {
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    color: #333;
+}
+@media(max-width:700px) {/*手機版樣式*/
+    #userContainer {
+        top: 10px;
+        right: 10px;
+    }
+    #closeBtn {
+        top: 10px;
+        left: 10px;
+    }
+}
+/*------------------------------------------------------------*/
+/*返回按鈕*/
+.back-button {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 8px 20px;
+    background-color: #698F99;
+    border-radius: 980px;
+    font-size: 20px;
+    color: white;
+    border: none;
+    cursor: pointer;
+    opacity: 1; /*固定可見，不參與動畫*/
+}
+@media(max-width:700px) {/*手機版樣式*/
+    .back-button {
+        top: 10px;
+        left: 10px;
+    }
+}
+/*------------------------------------------------------------*/
+/*打卡進度*/
+#checkInProgress {
+    position: absolute;
+    top: 37%;
+    right: 28%;
+    transform: translateY(-50%);
+    font-size: 1.5em;
+    color: #343434; /* 顏色可自訂 */
+}
+@media(max-width:700px) {/*手機版樣式*/
+    #checkInProgress {
+        right: 6%;
+    }
+}
+/*------------------------------------------------------------*/
+/*開始打卡按鈕*/
+.startButton {
+    position: absolute;
+    top: 37%;
+    transform: translateY(-50%);
+    padding: 8px 16px;
+    background-color: #698F99;
+    border-radius: 980px;
+    font-size: 1.5em;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+/*------------------------------------------------------------*/
+/*圖例*/
+.legend {
+    position: absolute;
+    top: 37%;
+    left: 28%;
+    transform: translateY(-50%);
+    font-size: 1.5em;
+    color: #343434; /* 顏色可自訂 */
+}
+@media(max-width:700px) {/*手機版樣式*/
+    .legend {
+        left: 4%;
+    }
+}
+/*------------------------------------------------------------*/
+/*相機*/
+#cameraContainer {
+    width: 100%;
+    height: 66%;
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0;
+}
+
+#camera {
+    width: 45%;
+    border-radius: 12px;
+    transform: scaleX(-1);
+}
+@media(max-width:700px) {/*手機版樣式*/
+    #cameraContainer {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0;
+    }
+    #camera {
+        width: 95%;
+        border-radius: 12px;
+        transform: scaleX(-1);
+    }
+
+}
+/*------------------------------------------------------------*/
+/*容器內子元素初始狀態（除了 .back-button） */
+.container > *:not(.back-button) {
+    opacity: 0; /*初始透明，等待淡入*/
+}
+
+/*非隱藏容器內的子元素保持可見*/
+.container:not(.hidden) > *:not(.back-button) {
+    opacity: 1; /*確保顯示時可見*/
+}
+/*------------------------------------------------------------*/
+/*選取禁止*/
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
