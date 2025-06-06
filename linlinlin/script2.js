@@ -29,6 +29,8 @@ window.loadCheckInRecords = loadCheckInRecords;
 window.joinEvent = joinEvent;
 window.loadPersonalData = loadPersonalData;
 
+const socket = new WebSocket("socket://localhost:8080"); // 改成你實際後端的 socket endpoint
+
 // 攝影機功能
 async function startCamera() {
     const video = document.getElementById('camera');
@@ -38,39 +40,31 @@ async function startCamera() {
         video.srcObject = stream;
         await video.play();
 
-        // 2. 若 WS 還沒連線，就新建連線
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            ws = new WebSocket("ws://localhost:8080"); // 改成你實際後端的 WS endpoint
-
-            ws.onopen = () => {
-                console.log("🔌 WebSocket 已連線");
-            };
-            ws.onmessage = (evt) => {
-                // 後端傳回來的 JSON 資料
-                try {
-                    const resp = JSON.parse(evt.data);
-                    if (resp.status === "ok") {
-                        console.log("[辨識成功] 用戶：", resp.user, "相似度：", resp.similarity);
-                        // 你可以把結果顯示到畫面上，或立即停止傳流
-                        // 例如：
-                        // document.getElementById("Message").innerText = `授權通過：${resp.user} (${resp.similarity})`;
-                    } else if (resp.status === "fail") {
-                        console.warn("[辨識失敗] 原因：", resp.reason, "相似度：", resp.similarity);
-                        // document.getElementById("Message").innerText = `辨識失敗：${resp.reason}`;
-                    } else if (resp.status === "error") {
-                        console.error("[伺服器錯誤] ", resp.message);
-                    }
-                } catch (e) {
-                    console.error("解析後端回應失敗：", e);
+        socket.onmessage = evt => {
+            // 後端傳回來的 JSON 資料
+            try {
+                const resp = JSON.parse(evt.data);
+                if (resp.status === "ok") {
+                    console.log("[辨識成功] 用戶：", resp.user, "相似度：", resp.similarity);
+                    // 你可以把結果顯示到畫面上，或立即停止傳流
+                    // 例如：
+                    // document.getElementById("Message").innerText = `授權通過：${resp.user} (${resp.similarity})`;
+                } else if (resp.status === "fail") {
+                    console.warn("[辨識失敗] 原因：", resp.reason, "相似度：", resp.similarity);
+                    // document.getElementById("Message").innerText = `辨識失敗：${resp.reason}`;
+                } else if (resp.status === "error") {
+                    console.error("[伺服器錯誤] ", resp.message);
                 }
-            };
-            ws.onclose = () => {
-                console.log("🔌 WebSocket 已斷開");
-            };
-            ws.onerror = (err) => {
-                console.error("🔌 WebSocket 發生錯誤：", err);
-            };
-        }
+            } catch (e) {
+                console.error("解析後端回應失敗：", e);
+            }
+        };
+        socket.onclose = () => {
+            console.log("🔌 WebSocket 已斷開");
+        };
+        socket.onerror = err => {
+            console.error("🔌 WebSocket 發生錯誤：", err);
+        };
 
         // 3. 準備一個隱藏的 canvas 來擷取 video 畫面
         const offscreenCanvas = document.createElement("canvas");
@@ -80,7 +74,7 @@ async function startCamera() {
 
         // 4. 每隔 500ms 抓一張 frame、轉成 Base64，再送給後端
         captureInterval = setInterval(() => {
-            if (ws.readyState !== WebSocket.OPEN) return;
+            if (socket.readyState !== WebSocket.OPEN) return;
 
             // 將目前 video 畫面畫到 canvas
             ctx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
@@ -91,7 +85,8 @@ async function startCamera() {
                 type: "base64",
                 data: dataURL
             };
-            ws.send(JSON.stringify(payload));
+            console.log('sending');
+            socket.send(JSON.stringify(payload));
         }, 500);
 
     } catch (err) {
