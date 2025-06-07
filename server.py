@@ -142,6 +142,7 @@ async def handler(websocket):
             # 解析 JSON
             import json
             msg = json.loads(raw)
+            print(msg)
 
             # 根據 type 決定如何讀影像
             if msg.get("type") == "file":

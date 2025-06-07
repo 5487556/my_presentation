@@ -29,71 +29,99 @@ window.loadCheckInRecords = loadCheckInRecords;
 window.joinEvent = joinEvent;
 window.loadPersonalData = loadPersonalData;
 
-const socket = new WebSocket("socket://localhost:8080"); // 改成你實際後端的 socket endpoint
+let socket = null;
+let captureInterval = null;
 
-// 攝影機功能
 async function startCamera() {
-    const video = document.getElementById('camera');
-    try {
-        // 1. 先打開攝影機
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        video.srcObject = stream;
-        await video.play();
+  // （一）先確認使用者已登入，並且 camera DOM 存在
+  const userUID = localStorage.getItem("userUID");
+  if (!userUID) {
+    alert("請先登入才能打卡");
+    return;
+  }
 
-        socket.onmessage = evt => {
-            // 後端傳回來的 JSON 資料
-            try {
-                const resp = JSON.parse(evt.data);
-                if (resp.status === "ok") {
-                    console.log("[辨識成功] 用戶：", resp.user, "相似度：", resp.similarity);
-                    // 你可以把結果顯示到畫面上，或立即停止傳流
-                    // 例如：
-                    // document.getElementById("Message").innerText = `授權通過：${resp.user} (${resp.similarity})`;
-                } else if (resp.status === "fail") {
-                    console.warn("[辨識失敗] 原因：", resp.reason, "相似度：", resp.similarity);
-                    // document.getElementById("Message").innerText = `辨識失敗：${resp.reason}`;
-                } else if (resp.status === "error") {
-                    console.error("[伺服器錯誤] ", resp.message);
-                }
-            } catch (e) {
-                console.error("解析後端回應失敗：", e);
-            }
-        };
-        socket.onclose = () => {
-            console.log("🔌 WebSocket 已斷開");
-        };
-        socket.onerror = err => {
-            console.error("🔌 WebSocket 發生錯誤：", err);
-        };
+  const video = document.getElementById('camera');
+  if (!video) {
+    console.error("找不到 <video id='camera'>");
+    return;
+  }
 
-        // 3. 準備一個隱藏的 canvas 來擷取 video 畫面
-        const offscreenCanvas = document.createElement("canvas");
-        const ctx = offscreenCanvas.getContext("2d");
-        offscreenCanvas.width = video.videoWidth || 640;
-        offscreenCanvas.height = video.videoHeight || 480;
+  // （二）打開攝影機
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    video.srcObject = stream;
+    await video.play();
+  } catch (err) {
+    console.error("無法開啟攝影機：", err);
+    alert("無法開啟攝影機，請確認權限設定");
+    return;
+  }
 
-        // 4. 每隔 500ms 抓一張 frame、轉成 Base64，再送給後端
-        captureInterval = setInterval(() => {
-            if (socket.readyState !== WebSocket.OPEN) return;
+  // （三）建立 WebSocket 連線（只有在打卡頁打開時才做）
+  socket = new WebSocket("ws://localhost:8080");
 
-            // 將目前 video 畫面畫到 canvas
-            ctx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
-            // 取 dataURL (預設 mime-type 是 image/png)
-            const dataURL = offscreenCanvas.toDataURL("image/jpeg", 0.7);
-            // 組成後端識別需要的 JSON，例如 type = "base64"
-            const payload = {
-                type: "base64",
-                data: dataURL
-            };
-            console.log('sending');
-            socket.send(JSON.stringify(payload));
-        }, 500);
-
-    } catch (err) {
-        console.error("無法開啟攝影機：", err);
-        alert("無法開啟攝影機，請確認瀏覽器權限設定");
-    }
+  socket.onopen = () => {
+    console.log("🔌 WebSocket 已連線 (startCamera)");
+    startCaptureLoop(video);
+  };
+  socket.onmessage = evt => {
+    // 處理後端回傳
+    console.log("👈 來自後端：", evt.data);
+  };
+  socket.onclose = () => {
+    console.log("🔌 WebSocket 已斷開");
+    stopCamera(); // 如果你想連線斷了就自動停止擷取
+  };
+  socket.onerror = err => {
+    console.error("🔌 WebSocket 發生錯誤：", err);
+  };
 }
+
+function startCaptureLoop(video) {
+  // 如果已經有舊的 interval，就先清掉
+  if (captureInterval) {
+    clearInterval(captureInterval);
+    captureInterval = null;
+  }
+  // 建立隱藏 Canvas，用來擷取影像
+  const offscreenCanvas = document.createElement("canvas");
+  const ctx = offscreenCanvas.getContext("2d");
+  offscreenCanvas.width = video.videoWidth;
+  offscreenCanvas.height = video.videoHeight;
+
+  captureInterval = setInterval(() => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      console.warn("⚠️ WebSocket 尚未 open，跳過本次傳送");
+      return;
+    }
+    ctx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
+    const dataURL = offscreenCanvas.toDataURL("image/jpeg", 0.7);
+    const payload = { type: "base64", data: dataURL };
+    console.log("➡️ 傳送影像給後端，size =", dataURL.length);
+    socket.send(JSON.stringify(payload));
+  }, 3000);
+}
+
+function stopCamera() {
+  // 清掉 interval
+  if (captureInterval) {
+    clearInterval(captureInterval);
+    captureInterval = null;
+  }
+  // 停掉 MediaStream
+  const video = document.getElementById('camera');
+  if (video && video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+  // 關閉 WebSocket
+  if (socket && socket.readyState === WebSocket.OPEN) {
+    socket.close();
+  }
+  socket = null;
+}
+
+
 
 // 頁面載入時觸發淡入效果
 document.addEventListener('DOMContentLoaded', () => {
@@ -320,6 +348,10 @@ function toggleSection(sectionId, eventId = null, eventName = '') {
             }
             startCamera();
         }
+        // else {
+        //     // 離開打卡頁就 stop
+        //     stopCamera();
+        // }
     }, 300); // 與淡出時間同步
 }
 window.toggleSection = toggleSection;
