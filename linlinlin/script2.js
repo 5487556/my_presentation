@@ -29,9 +29,12 @@ window.loadCheckInRecords = loadCheckInRecords;
 window.joinEvent = joinEvent;
 window.loadPersonalData = loadPersonalData;
 
+
+
+
+
 let socket = null;
 let captureInterval = null;
-
 async function startCamera() {
   // （一）先確認使用者已登入，並且 camera DOM 存在
   const userUID = localStorage.getItem("userUID");
@@ -39,13 +42,11 @@ async function startCamera() {
     alert("請先登入才能打卡");
     return;
   }
-
   const video = document.getElementById('camera');
   if (!video) {
     console.error("找不到 <video id='camera'>");
     return;
   }
-
   // （二）打開攝影機
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
@@ -56,7 +57,6 @@ async function startCamera() {
     alert("無法開啟攝影機，請確認權限設定");
     return;
   }
-
   // （三）建立 WebSocket 連線（只有在打卡頁打開時才做）
   socket = new WebSocket("ws://localhost:8080");
 
@@ -76,7 +76,6 @@ async function startCamera() {
     console.error("🔌 WebSocket 發生錯誤：", err);
   };
 }
-
 function startCaptureLoop(video) {
   // 如果已經有舊的 interval，就先清掉
   if (captureInterval) {
@@ -101,7 +100,6 @@ function startCaptureLoop(video) {
     socket.send(JSON.stringify(payload));
   }, 3000);
 }
-
 function stopCamera() {
   // 清掉 interval
   if (captureInterval) {
@@ -120,6 +118,8 @@ function stopCamera() {
   }
   socket = null;
 }
+
+
 
 
 

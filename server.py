@@ -142,7 +142,6 @@ async def handler(websocket):
             # 解析 JSON
             import json
             msg = json.loads(raw)
-            print(msg)
 
             # 根據 type 決定如何讀影像
             if msg.get("type") == "file":
@@ -183,6 +182,7 @@ async def handler(websocket):
                     "similarity": round(sim, 4)
                 }
             await websocket.send(json.dumps(response))
+            print(response)
 
         except Exception as e:
             import traceback
