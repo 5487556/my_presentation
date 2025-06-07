@@ -13,8 +13,8 @@ from annoy import AnnoyIndex
 
 # -------------------- 以下為人臉辨識相關程式（與你原本的 FaceRegister/FaceRecognizer 類似） --------------------
 
-# BASE_PATH = '/content/drive/MyDrive/FaceAuthSystem'
-BASE_PATH = 'D:/mydev/my_presentation/FaceAuthSystem'
+BASE_PATH = '/content/drive/MyDrive/FaceAuthSystem'
+# BASE_PATH = 'D:/mydev/my_presentation/FaceAuthSystem'
 MIN_FACE_CONFIDENCE = 0.95
 FACE_SIZE = (160, 160)
 INDEX_TREES = 10
