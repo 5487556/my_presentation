@@ -348,10 +348,9 @@ function toggleSection(sectionId, eventId = null, eventName = '') {
             }
             startCamera();
         }
-        // else {
-        //     // 離開打卡頁就 stop
-        //     stopCamera();
-        // }
+        else {
+            stopCamera();
+        }
     }, 300); // 與淡出時間同步
 }
 window.toggleSection = toggleSection;
