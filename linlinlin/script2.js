@@ -58,7 +58,7 @@ async function startCamera() {
     return;
   }
   // （三）建立 WebSocket 連線（只有在打卡頁打開時才做）
-  socket = new WebSocket("ws://localhost:8080");
+  socket = new WebSocket("wss://my-presentation-bovt.onrender.com");
 
   socket.onopen = () => {
     console.log("🔌 WebSocket 已連線 (startCamera)");
