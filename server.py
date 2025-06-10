@@ -4,7 +4,6 @@ import os
 import re
 import json
 import base64
-import socket
 import asyncio
 import numpy as np
 import tensorflow as tf
@@ -15,10 +14,9 @@ from mtcnn import MTCNN
 from keras_facenet import FaceNet
 from annoy import AnnoyIndex
 
-# ======================= 1. 全域設定 =======================
-# BASE_PATH 改用相对路径或来自环境变量
+# =========================== 1. 全域參數 ===========================
+# 用环境变量或当前工作目录决定 BASE_PATH
 BASE_PATH = os.getenv("RENDER_DB_PATH", os.path.join(os.getcwd(), "data", "FaceAuthSystem"))
-
 for sub in ("database", "models", "test_images"):
     os.makedirs(os.path.join(BASE_PATH, sub), exist_ok=True)
 
@@ -36,8 +34,7 @@ def validate_user_id(uid):
 def safe_filename(uid):
     return quote(uid, safe='')
 
-# ======================= 2. 人臉註冊/辨識類別 =======================
-
+# ====================== 2. FaceRegister / FaceRecognizer ======================
 class FaceRegister:
     def __init__(self):
         self.detector = MTCNN()
@@ -65,7 +62,9 @@ class FaceRegister:
             safe_id = safe_filename(uid)
             _, face_img = self._process_face(img_path)
             emb = self.embedder.embeddings([face_img])[0]
+            # 存 embedding
             np.save(os.path.join(BASE_PATH, "database", f"{safe_id}.npy"), emb)
+            # 存裁切後人臉圖
             cv2.imwrite(
                 os.path.join(BASE_PATH, "database", f"{safe_id}.{SAVE_IMAGE_FORMAT}"),
                 cv2.cvtColor(face_img, cv2.COLOR_RGB2BGR),
@@ -79,7 +78,7 @@ class FaceRegister:
 
 class FaceRecognizer:
     def __init__(self, threshold=0.5):
-        # 啟用 GPU（若有）
+        # 嘗試啟用 GPU
         gpus = tf.config.list_physical_devices('GPU')
         if gpus:
             try:
@@ -93,7 +92,7 @@ class FaceRecognizer:
         self.embedder = FaceNet()
         self.threshold = threshold
 
-        # 載入已存放的 .npy embedding 檔
+        # 載入已註冊使用者的 embedding
         self.user_ids = []
         self.embeddings = []
         db_dir = os.path.join(BASE_PATH, "database")
@@ -110,14 +109,14 @@ class FaceRecognizer:
                 self.embeddings.append(emb)
 
         if len(self.embeddings) == 0:
-            print("⚠️ 資料庫目前沒有任何使用者特徵，辨識會一直失敗。")
+            print("⚠️ 資料庫尚無使用者特徵，辨識會失敗。")
 
         # 建立 Annoy Index
         self.index = AnnoyIndex(512, 'angular')
         for i, e in enumerate(self.embeddings):
             self.index.add_item(i, e)
         self.index.build(INDEX_TREES)
-        print(f"✅ Index 已建立，共有 {self.index.get_n_items()} 筆特徵")
+        print(f"✅ Index 已建立，共 {self.index.get_n_items()} 筆")
 
     def _recognize_embedding(self, emb):
         idxs, dists = self.index.get_nns_by_vector(emb, 3, include_distances=True)
@@ -131,10 +130,10 @@ class FaceRecognizer:
             return None, sim
 
     def recognize_from_image(self, rgb_img, debug=False):
-        faces = self.detector.detect_faces(rgb_img)
-        if not faces:
+        results = self.detector.detect_faces(rgb_img)
+        if not results:
             return None, 0.0
-        main = max(faces, key=lambda x: x['confidence'])
+        main = max(results, key=lambda x: x['confidence'])
         if main['confidence'] < MIN_FACE_CONFIDENCE:
             return None, float(main['confidence'])
         x, y, w, h = (max(0, v) for v in main['box'])
@@ -150,15 +149,16 @@ class FaceRecognizer:
         rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
         return self.recognize_from_image(rgb, debug)
 
-# 全域 recognizer 實例（只建立一次）
+# 全域 recognizer，只初始化一次
 recognizer = FaceRecognizer(threshold=0.5)
 
-# ======================= 3. WebSocket Handler =======================
+
+# =========================== 3. WebSocket Handler ===========================
 async def ws_handler(ws, path):
     """
-    只處理 path 以 /ws 開頭的 WebSocket 握手和訊息收發
+    只處理 path 以 /ws 開頭的 WebSocket 握手 & 訊息收發
     """
-    print(f"WebSocket 前端连线: path={path}")
+    print(f"WebSocket 已連到：path={path}")
     try:
         async for raw in ws:
             try:
@@ -191,7 +191,7 @@ async def ws_handler(ws, path):
                     reason = "未檢測到人臉" if sim == 0.0 else "相似度不足"
                     resp = {"status": "fail", "reason": reason, "similarity": round(sim, 4)}
                 await ws.send(json.dumps(resp))
-                print("回傳給前端 →", resp)
+                print("回傳結果 →", resp)
 
             except Exception as je:
                 await ws.send(json.dumps({
@@ -199,81 +199,45 @@ async def ws_handler(ws, path):
                     "message": str(je)
                 }))
     except websockets.exceptions.ConnectionClosedOK:
-        print("WebSocket 連線正常關閉")
+        print("WebSocket 正常關閉")
     except Exception as e:
-        print("WebSocket 發生例外:", e)
+        print("WebSocket 例外：", e)
 
-# ======================= 4. HTTP 健康檢查 Handler =======================
-async def http_healthcheck(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
+
+# ====================== 4. process_request 用以攔截 HTTP 健康檢查 ======================
+async def process_request(path, request_headers):
     """
-    用來攔截所有非 /ws 的 HEAD / GET 請求（Render 健康檢查通常就是 HEAD / 或 GET /healthz）。
-    收到後直接回 200 OK，不再往下傳給 WebSocket 部分。
+    如果 path 是 "/" 或 "/healthz" 且 method 為 HEAD/GET，就回 200，
+    讓 Render 的 HTTP 健康檢查通過。其餘情況下回 None，表示繼續做 WebSocket 握手檢查。
     """
-    try:
-        # 只讀第一行 request line (e.g. "HEAD / HTTP/1.1")
-        data = await reader.readline()
-        if not data:
-            writer.close()
-            await writer.wait_closed()
-            return
+    # 在 websockets.serve 這邊，process_request 只有 path 和 headers，沒有 method，
+    # 但 HTTP HEAD/GET 在 WebSocket 握手時 path 一定不含 "Upgrade: websocket" 之類 header。
+    # 我們只要看 path：
+    if path == "/" or path == "/healthz":
+        # 回傳一個 HTTP 200，body 空：
+        return (
+            200,                          # status
+            [("Content-Type", "text/plain")],  # headers
+            b""                          # 空 body
+        )
+    # 路徑不是 "/"、"/healthz"，就回 None，讓 websockets 判斷是否為升級 WebSocket
+    return None
 
-        request_line = data.decode().strip()
-        parts = request_line.split(" ")
-        if len(parts) < 2:
-            writer.close()
-            await writer.wait_closed()
-            return
 
-        method, path = parts[0], parts[1]
-        # 只要是 HEAD or GET，就當健康檢查回 200
-        if method in ("HEAD", "GET"):
-            # 直接回 200 OK，body 为空
-            response = (
-                "HTTP/1.1 200 OK\r\n"
-                "Content-Length: 0\r\n"
-                "Connection: close\r\n"
-                "\r\n"
-            )
-            writer.write(response.encode())
-            await writer.drain()
-            writer.close()
-            await writer.wait_closed()
-            return
-        else:
-            # 其他方法可以直接關閉連線
-            writer.close()
-            await writer.wait_closed()
-            return
-    except Exception:
-        # 若解析過程出錯，直接關閉連線
-        writer.close()
-        await writer.wait_closed()
-        return
-
-# ======================= 5. 主入口：同時啟動 HTTP + WebSocket =======================
+# ===================== 5. main: 只用 websockets.serve 監聽同一個 port =====================
 async def main():
-    # Render 會自動指定一個環境變數 PORT，代表服務要監聽的埠
     port = int(os.getenv("PORT", "8765"))
     bind_addr = "0.0.0.0"
 
-    # 1) 用 asyncio.start_server 建立一個 TCP server，先拦截 HEAD/GET 做健康检查
-    http_server = await asyncio.start_server(http_healthcheck, bind_addr, port)
-    print(f"✅ HTTP (Healthcheck) 伺服器已啟動，監聽 {bind_addr}:{port}，拦截 HEAD/GET")
-
-    # 2) 用 websockets.serve 啟動同一個端口的 WebSocket Server（只接受 /ws 路徑）
-    #    process_request=lambda… 用來告诉 websockets：如果 URL path 不符合，就不做 WebSocket 升级
-    ws_server = await websockets.serve(
+    # 只呼叫一個 websockets.serve()，把 process_request 參數帶進去：
+    server = await websockets.serve(
         ws_handler,
         bind_addr,
         port,
-        subprotocols=None,
-        process_request=lambda path, request_headers: None  # 让 websockets 只处理 /ws 升级逻辑
+        process_request=process_request
     )
-    print(f"✅ WebSocket 伺服器已啟動，僅在 /ws 路徑做握手")
-
-    # 注意：这里我们只等待 HTTP server，WebSocket server 会共用同一个 EventLoop
-    async with http_server:
-        await http_server.serve_forever()
+    print(f"✅ Server 已啟動，監聽 {bind_addr}:{port} (同時接受 HTTP HEAD/GET /healthz & WebSocket /ws)")
+    await server.wait_closed()
 
 if __name__ == "__main__":
     asyncio.run(main())
