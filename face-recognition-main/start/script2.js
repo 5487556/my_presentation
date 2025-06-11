@@ -2,6 +2,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
+
+const BUCKET_NAME = "face123";
+export const supabase = createClient("https://wiqldwmpszfinwbdegrs.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndpcWxkd21wc3pmaW53YmRlZ3JzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDg5NTUyNTQsImV4cCI6MjA2NDUzMTI1NH0.gbPCAFdTdEcl8-1C4OnNlp2G0YGue6kd1N9cvxmqiUA");
 
 // 初始化 Firebase
 const firebaseConfig = {
@@ -20,106 +24,17 @@ export const db = getFirestore(app);
 
 // 引入外部模組
 import { loadEventManagement, createEvent, loadEventDetail } from './manage.js';
-import { loadCheckInRecords, joinEvent } from './join.js';
+import { loadCheckInRecords, joinEvent, addExitEventListener } from './join.js';
 import { loadPersonalData } from './personalData.js';
+import { toggleSection } from './toggleSection.js';
 window.createEvent = createEvent;
 window.loadEventManagement = loadEventManagement;
 window.loadEventDetail = loadEventDetail;
 window.loadCheckInRecords = loadCheckInRecords;
 window.joinEvent = joinEvent;
 window.loadPersonalData = loadPersonalData;
-
-
-
-
-
-let socket = null;
-let captureInterval = null;
-async function startCamera() {
-  // （一）先確認使用者已登入，並且 camera DOM 存在
-  const userUID = localStorage.getItem("userUID");
-  if (!userUID) {
-    alert("請先登入才能打卡");
-    return;
-  }
-  const video = document.getElementById('camera');
-  if (!video) {
-    console.error("找不到 <video id='camera'>");
-    return;
-  }
-  // （二）打開攝影機
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-    video.srcObject = stream;
-    await video.play();
-  } catch (err) {
-    console.error("無法開啟攝影機：", err);
-    alert("無法開啟攝影機，請確認權限設定");
-    return;
-  }
-  // （三）建立 WebSocket 連線（只有在打卡頁打開時才做）
-  socket = new WebSocket("wss://my-presentation-bovt.onrender.com");
-
-  socket.onopen = () => {
-    console.log("🔌 WebSocket 已連線 (startCamera)");
-    startCaptureLoop(video);
-  };
-  socket.onmessage = evt => {
-    // 處理後端回傳
-    console.log("👈 來自後端：", evt.data);
-  };
-  socket.onclose = () => {
-    console.log("🔌 WebSocket 已斷開");
-    stopCamera(); // 如果你想連線斷了就自動停止擷取
-  };
-  socket.onerror = err => {
-    console.error("🔌 WebSocket 發生錯誤：", err);
-  };
-}
-function startCaptureLoop(video) {
-  // 如果已經有舊的 interval，就先清掉
-  if (captureInterval) {
-    clearInterval(captureInterval);
-    captureInterval = null;
-  }
-  // 建立隱藏 Canvas，用來擷取影像
-  const offscreenCanvas = document.createElement("canvas");
-  const ctx = offscreenCanvas.getContext("2d");
-  offscreenCanvas.width = video.videoWidth;
-  offscreenCanvas.height = video.videoHeight;
-
-  captureInterval = setInterval(() => {
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      console.warn("⚠️ WebSocket 尚未 open，跳過本次傳送");
-      return;
-    }
-    ctx.drawImage(video, 0, 0, offscreenCanvas.width, offscreenCanvas.height);
-    const dataURL = offscreenCanvas.toDataURL("image/jpeg", 0.7);
-    const payload = { type: "base64", data: dataURL };
-    console.log("➡️ 傳送影像給後端，size =", dataURL.length);
-    socket.send(JSON.stringify(payload));
-  }, 3000);
-}
-function stopCamera() {
-  // 清掉 interval
-  if (captureInterval) {
-    clearInterval(captureInterval);
-    captureInterval = null;
-  }
-  // 停掉 MediaStream
-  const video = document.getElementById('camera');
-  if (video && video.srcObject) {
-    video.srcObject.getTracks().forEach(t => t.stop());
-    video.srcObject = null;
-  }
-  // 關閉 WebSocket
-  if (socket && socket.readyState === WebSocket.OPEN) {
-    socket.close();
-  }
-  socket = null;
-}
-
-
+window.toggleSection = toggleSection;
+window.addExitEventListener = addExitEventListener;
 
 
 
@@ -235,7 +150,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ['toJoinRecord', 'joinRecord'],//參加紀錄
             ['toJoinEvent', 'joinEvent'],//參加
             ['bckToManageEventFrmJoinEvent', 'joinRecord'],//回到參加紀錄
-            ['bckToJoinEventFrmJoinEventDetail', 'joinRecord'], // 從詳細頁返回參加紀錄
+            ['toJoinEventDetail', 'joinEventDetail'], //參加活動詳情
+            ['bckToJoinEventFrmJoinEventDetail', 'joinRecord'], //回到參加紀錄
+            ['toEventDDetail', 'eventDDetail'],//活動詳情
+            ['bckToEventDetailFrmEventDDetail', 'eventDetail'],//回到舉辦紀錄
             
         ];
         sectionBtnMap.forEach(([id, target]) => {
@@ -279,84 +197,8 @@ function setVH() {
 window.addEventListener('load', setVH);
 window.addEventListener('resize', setVH);
 
-// 切換介面
-function toggleSection(sectionId, eventId = null, eventName = '') {
-    const allContainers = document.querySelectorAll('.container');
-    const nextSection = document.getElementById(sectionId);
-    const userID = document.getElementById('userContainer');
-    const close_btn = document.getElementById('closeBtn');
-    let movedUserContainer = false;
-    let movedCloseBtn = false;
-    allContainers.forEach(container => {
-        if (!container.classList.contains('hidden')) {
-            const elements = container.querySelectorAll('h2, input, button:not(.back-button), div:not(#userContainer):not(#userContainer *), a, p:not(#userID)');
-            elements.forEach(element => element.classList.add('fade-out')); // 觸發淡出
-            setTimeout(() => {
-                const userContainer = document.getElementById('userContainer');
-                // 移動 userID 到 body（暫時移出要隱藏的 container）
-                if (userContainer && userContainer.parentNode === container) {
-                    document.body.appendChild(userContainer);
-                    movedUserContainer = true;
-                }
-                // 移動 closeBtn 到 body（暫時移出要隱藏的 container）
-                if (close_btn && close_btn.parentNode === container) {
-                    document.body.appendChild(close_btn);
-                    movedCloseBtn = true;
-                }
-                container.classList.add('hidden');
-                elements.forEach(element => element.classList.remove('fade-out')); // 清除淡出類別
-            }, 300); // 等待淡出完成
-        }
-    });
-    document.querySelectorAll("input").forEach(input => input.value = "");
-    document.getElementById("Message").innerText = "";
-
-    setTimeout(() => {
-        nextSection.classList.remove('hidden');
-        const nextElements = nextSection.querySelectorAll('h2, input, button:not(.back-button), div:not(#userContainer):not(#userContainer *), a');
-        nextElements.forEach(element => element.classList.add('fade-in')); // 觸發淡入
-        // 將 userID 插回到新可見 container 最上面
-        if (movedUserContainer && userContainer) {
-            nextSection.insertBefore(userID, nextSection.firstChild);
-        }
-        // 將 closeBtn 插回到新可見 container 最上面
-        if (movedCloseBtn && close_btn) {
-            nextSection.insertBefore(close_btn, nextSection.firstChild);
-        }
-        setTimeout(() => {
-            nextElements.forEach(element => element.classList.remove('fade-in')); // 清除淡入類別
-        }, 500); // 清除動畫類別
-        if (sectionId === 'joinRecord') {
-            loadCheckInRecords();
-        }
-        if (sectionId === 'manageEvent') {
-            loadEventManagement();
-        }
-        if (sectionId === 'eventDetail' && eventId) {
-            loadEventDetail(eventId);
-        }
-        if (sectionId === 'joinEventDetail' && eventId) {
-            const detailTitle = document.querySelector('#joinEventDetail .title');
-            if (detailTitle) {
-                detailTitle.textContent = eventName;
-            }
-        }
-        if (sectionId === 'checkIn') {
-            const checkInTitle = document.querySelector('#checkIn .title');
-            if (checkInTitle) {
-                checkInTitle.textContent = eventName;
-            }
-            startCamera();
-        }
-        else {
-            stopCamera();
-        }
-    }, 300); // 與淡出時間同步
-}
-window.toggleSection = toggleSection;
-
 //顯示用戶名稱
-async function loadUserName() {
+export async function loadUserName() {
     const userIDElement = document.getElementById('userID');
     const userUID = localStorage.getItem("userUID");
     if (!userUID) {
@@ -374,6 +216,7 @@ async function loadUserName() {
 
         if (userDocSnap.exists()) {
             const userData = userDocSnap.data();
+            localStorage.setItem("userData", JSON.stringify(userData));
             userIDElement.textContent = `用戶：${userData.userName}`;
             userIDElement.className = 'green';
             userIDElement.addEventListener('click', expandContract);
@@ -406,6 +249,62 @@ async function loadUserName() {
             userIDElement.innerHTML = '<a href="#" class="animated-link" data-url="https://harrylin0312.github.io/face-recognition/login/" style="color:red;">登入</a>';
         }
         userIDElement.className = 'red';
+    }
+    checkUploadedImages()
+}
+export async function checkUploadedImages() {
+    // 檢查是否有上傳個人臉部影像
+    const uploadSign = document.getElementById("uploadSign");
+    const uploadBtn = document.querySelector(".PDuploadBtn");
+    const userUID = localStorage.getItem("userUID");
+
+    if (!uploadSign || !uploadBtn || !userUID) return;
+
+    uploadSign.textContent = "載入中...";
+    uploadSign.style.color = "black";
+    uploadBtn.style.display = "none";
+
+    const { data, error } = await supabase
+        .storage
+        .from(BUCKET_NAME)
+        .list("", { search: `${userUID}.jpg` });
+
+    if (error || !data || data.length === 0) {
+        uploadSign.innerHTML = `上傳用戶臉部影像`;
+        uploadSign.style.color = "red";
+        uploadBtn.style.display = "inline-block";
+        // 取得 userData 並更新 #userID，顯示警示圖示
+        const userIDElement = document.getElementById("userID");
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        userIDElement.innerHTML = `用戶：${userData.userName} <span style="color:red;"><i class="fa-solid fa-triangle-exclamation"></i></span>`;
+        userIDElement.className = 'green';
+
+        // 在 .detail 後加入警示圖示
+        const detailElement = document.querySelector(".detail");
+        if (detailElement && !detailElement.querySelector(".warning-icon")) {
+            const warningIcon = document.createElement("i");
+            warningIcon.className = "fa-solid fa-triangle-exclamation warning-icon";
+            warningIcon.style.color = "red";
+            warningIcon.style.marginLeft = "6px";
+            detailElement.appendChild(warningIcon);
+        }
+    } else {
+        uploadSign.textContent = "已完成上傳";
+        uploadSign.style.color = "green";
+        uploadBtn.style.display = "none";
+        // 取得 userData 並更新 #userID，移除警示圖示
+        const userIDElement = document.getElementById("userID");
+        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        if (userIDElement && userData.userName) {
+            userIDElement.textContent = `用戶：${userData.userName}`;
+            userIDElement.className = 'green';
+        }
+        // 查詢成功且圖片存在時，清除 .detail 旁的警示圖示
+        const detailElement = document.querySelector(".detail");
+        if (detailElement) {
+            const warningIcon = detailElement.querySelector(".warning-icon");
+            if (warningIcon) detailElement.removeChild(warningIcon);
+        }
     }
 }
 
@@ -449,3 +348,4 @@ export function navigateWithAnimation(url) {
         window.location.href = url;
     }, 1600); // 1.6秒
 }
+

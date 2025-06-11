@@ -1,0 +1,182 @@
+/*登入成功擴張動畫*/
+@keyframes expandDesktop {
+    from {
+        height: 300px;
+        width: 300px;
+    }
+    to {
+        height: 80%;
+        width: 90%; 
+        background-color: #6aa7b6;
+        padding: 20px 20px;
+        border-radius: 30px;
+    }
+}
+@keyframes expandPhone {
+    from {
+        height: 300px;
+        width: 300px;
+    }
+    to {
+        height: 85%;
+        width: 80%; 
+        background-color: #6aa7b6;
+        padding: 20px 20px;
+        border-radius: 30px;
+    }
+}
+.container.expand {
+    animation: expandDesktop 1.5s forwards;
+}
+@media (max-width: 768px) {
+    .container.expand {
+        animation: expandPhone 1.5s forwards;
+    }
+}
+/*------------------------------------------------------------*/
+/*切換界面*/
+@keyframes expandToRegister {
+    from {
+        width: 300px;
+        height: 300px;
+    }
+    to {
+        width: 300px;
+        height: 355px;
+    }
+}
+@keyframes expandToLogin {
+    from {
+        width: 300px;
+        height: 355px;
+    }
+    to {
+        width: 300px;
+        height: 300px;
+    }
+}
+.container.expand2 {
+    animation: expandToRegister 0.5s forwards;
+}
+.container.expand3 {
+    animation: expandToLogin 0.5s forwards;
+}
+/*------------------------------------------------------------*/
+/*淡入淡出動畫*/
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+.hidden {
+    animation: fadeOut 0.3s ease forwards;
+    opacity: 0;
+}
+.visible {
+    animation: fadeIn 0.3s ease forwards;
+    opacity: 1;
+}
+/*------------------------------------------------------------*/
+/*提示容器縮放*/
+@keyframes promptExpand1 {
+    from {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        height: 25px;
+        width: 25px;
+        background-color: #698F99;
+        border-radius: 20px;
+    }
+    to {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        background-color: #91b5c1;
+        padding: 20px 30px; /*設定內邊距*/
+        border-radius: 15px; /*設定圓角邊框*/
+        text-align: center; /*文字置中對齊*/
+        height: 355px;
+        width: 300px;
+    }
+}
+@keyframes promptExpand2 {
+    from {
+        position: absolute;
+        bottom: 0px;
+        right: 0px;
+        background-color: #91b5c1;
+        padding: 20px 30px; /*設定內邊距*/
+        border-radius: 15px; /*設定圓角邊框*/
+        text-align: center; /*文字置中對齊*/
+        height: 355px;
+        width: 300px;
+    }
+    to {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        height: 25px;
+        width: 25px;
+        background-color: #698F99;
+        border-radius: 20px;
+    }
+}
+.promptExpand1 {
+    animation: promptExpand1 0.5s forwards;
+}
+.promptExpand2 {
+    animation: promptExpand2 0.5s forwards;
+}
+/*提示按鈕定位*/
+@keyframes promptPosition1 {
+    0% {
+        bottom: 0px;
+        right: 0px;
+        opacity: 1;
+    }
+    10% {
+        opacity: 0;
+    }
+    70% {
+        opacity: 0;
+    }
+    100% {
+        top: 15px;
+        left: 15px;
+        opacity: 1;
+    }
+}
+@keyframes promptPosition2 {
+    0% {
+        top: 15px;
+        left: 15px;
+        opacity: 1;
+    }
+    20% {
+        opacity: 0;
+    }
+    70% {
+        opacity: 0;
+    }
+    100% {
+        bottom: 0px;
+        right: 0px;
+        opacity: 1;
+    }
+}
+.promptPosition1 {
+    animation: promptPosition1 0.8s forwards;
+}
+.promptPosition2 {
+    animation: promptPosition2 0.7s forwards;
+}
+/*------------------------------------------------------------*/
+.container > * { 
+    opacity: 1;
+    transition: opacity 0.1s ease;
+}

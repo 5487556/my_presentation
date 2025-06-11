@@ -1,4 +1,3 @@
-
  <!DOCTYPE html>
 <html lang="zh-TW">
     <head>
@@ -17,7 +16,7 @@
         <link rel="apple-touch-icon-precomposed" sizes="180x180" href="./I'm-watching-you.png" type="image/png" />
     </head>
     <body>
-        <div class="container no-select"> 
+        <div class="container no-select"> 
             <!-- 登入畫面 (預設顯示) -->
             <div id="loginPage" style="display: block;">
                 <h2>登入帳戶</h2>
@@ -40,8 +39,12 @@
                 <div id="promptContainer">
                     <p id="prompt">
                         <span id="promptIcon">？</span>
+                        <p></p>
                     </p>
                 </div>
+                <strong id="limit" class="unvisible">限制</strong>
+                <span id="userNameLimit" class="unvisible">用戶名稱：小於20個字元</span>
+                <span id="passWordLimit" class="unvisible">密碼：大於6個字元</span>
             </div>
         </div>
 

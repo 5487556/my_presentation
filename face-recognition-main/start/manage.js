@@ -1,6 +1,4 @@
-import { navigateWithAnimation } from './script2.js';
-import { collection, doc, getDoc, getDocs, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
-import { db } from './script2.js';
+import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";import { db } from './script2.js';
 
 export async function loadEventManagement() {
     //取得目前登入使用者的 UID
@@ -49,7 +47,7 @@ export async function loadEventManagement() {
                         : "未知日期";
                     html += `<div class="record-item" onclick="toggleSection('eventDetail', '${eventID}', '${eventName}')">
                                 <span class="eventName">${eventName}</span>
-                                <span class="eventDate">${formattedDate}</span>
+                                <span class="eventDate eventDateToggle">${formattedDate}</span>
                                 <span class="arrow">&gt;</span>
                             </div>`;
                 } else {
@@ -66,10 +64,16 @@ export async function loadEventManagement() {
         if (newCreateBtn) {
             newCreateBtn.addEventListener('click', () => toggleSection('createEvent'));
         }
+        adjustEventDateVisibility();
+        window.addEventListener('resize', adjustEventDateVisibility);
 
     } catch (err) {
         console.error("讀取舉辦活動時發生錯誤：", err);
-        container.innerHTML = '載入失敗，請稍後再試';
+        if (!navigator.onLine || err.code === 'unavailable') {
+            container.innerHTML = '<span style="color:red;">網路連線錯誤</span>';
+        } else {
+            container.innerHTML = '載入失敗，請稍後再試';
+        }
     }
 }
 
@@ -126,6 +130,14 @@ export async function createEvent() {
     }
 
     try {
+        const userRef = doc(db, "users", userUID);
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) {
+            alert("找不到使用者資料");
+            submitBtn.disabled = false;
+            submitBtn.textContent = "確認";
+            return;
+        }
         const eventID = await getUniqueEventID(); //使用隨機ID
 
         //寫入活動資料至events集合與使用者hostedEvents子集合
@@ -142,6 +154,7 @@ export async function createEvent() {
         alert('活動已成功建立');
         document.getElementById('eventName').value = '';
         loadEventManagement();
+        toggleSection('manageEvent');
 
     } catch (error) {
         console.error('建立活動失敗：', error);
@@ -153,12 +166,17 @@ export async function createEvent() {
     }
 }
 
+//載入活詳情
 export async function loadEventDetail(eventID) {
     window.currentEventId = eventID;
     const titleElement = document.querySelector('#eventDetail .title');
     const container = document.getElementById('EventDetailList');
 
     container.innerHTML = '讀取中...';
+    const legendElement = document.querySelector('#eventDetail .legend');
+    const startButtonElement = document.querySelector('#eventDetail .startButton');
+    if (legendElement) legendElement.style.display = 'none';
+    if (startButtonElement) startButtonElement.style.display = 'none';
 
     try {
         const eventDocRef = doc(db, "events", eventID);
@@ -167,7 +185,7 @@ export async function loadEventDetail(eventID) {
         if (eventDocSnap.exists()) {
             //顯示活動名稱
             const eventData = eventDocSnap.data();
-            titleElement.textContent = eventData.eventName || "無名稱";
+            titleElement.innerHTML = `${eventData.eventName || "無名稱"} <i class="fa-regular fa-circle-info" style="cursor: pointer;" onclick="toggleSection('eventDDetail', window.currentEventId)"></i>`;
         } else {
             titleElement.textContent = "找不到活動資料";
             container.innerHTML = '找不到活動';
@@ -181,18 +199,31 @@ export async function loadEventDetail(eventID) {
         if (participantsSnap.empty) {
             container.innerHTML = '尚無參加者';
             return;
+        } else {
+            if (legendElement) legendElement.style.display = '';
+            if (startButtonElement) startButtonElement.style.display = '';
         }
 
         let html = '';
         for (const participantDoc of participantsSnap.docs) {
+            const userID = participantDoc.id;
             const participantData = participantDoc.data();
-            //顯示參加者名稱、打卡日期與狀態
-            const userName = participantData.userName || "無名稱";
+
+            let userName = "無名稱";
+            try {
+                const userDoc = await getDoc(doc(db, "users", userID));
+                if (userDoc.exists()) {
+                    userName = userDoc.data().userName || "無名稱";
+                }
+            } catch (e) {
+                console.warn(`無法取得使用者 ${userID} 資料`, e);
+            }
+
             const checkStatus = participantData.checkStatus || "未打卡";
             const checkTimeStamp = participantData.checkTime?.toDate?.();
-            const checkTime = checkTimeStamp
+            const checkTime = (checkStatus !== '未打卡' && checkTimeStamp)
                 ? `${checkTimeStamp.getFullYear()}/${checkTimeStamp.getMonth() + 1}/${checkTimeStamp.getDate()}`
-                : "未知日期";
+                : "";
 
             html += `<div class="record-item">
                         <span class="eventName">${userName}</span>
@@ -200,11 +231,6 @@ export async function loadEventDetail(eventID) {
                         <span class="${checkStatus === '未打卡' ? 'red' : 'green'}">${checkStatus}</span>
                     </div>`;
         }
-
-        // 新增刪除活動按鈕
-        html += `<div class="record-item delete-button" id="deleteEventButton">
-                    <span class="btnDeleteEvent">刪除活動</span>
-                </div>`;
 
         //計算已打卡的參加者人數並更新進度文字
         const totalParticipants = participantsSnap.size;
@@ -220,21 +246,98 @@ export async function loadEventDetail(eventID) {
         progressElement.textContent = `進度${checkedInCount}/${totalParticipants}`;
         container.innerHTML = html;
 
-        // 綁定刪除活動按鈕事件
-        const deleteBtn = document.getElementById('deleteEventButton');
-        if (deleteBtn) {
-            deleteBtn.addEventListener('click', async () => {
-                const confirmed = confirm('確定要刪除活動嗎？');
-                if (confirmed) {
-                    // 模擬刪除成功，切換回 manageEvent 畫面
-                    toggleSection('manageEvent');
-                    alert('活動已刪除（僅模擬，尚未實作資料庫刪除）');
-                }
-            });
-        }
-
     } catch (error) {
         console.error("讀取活動詳情錯誤：", error);
-        container.innerHTML = '載入失敗，請稍後再試';
+        if (!navigator.onLine || error.code === 'unavailable') {
+            container.innerHTML = '<span style="color:red;">網路連線錯誤</span>';
+        } else {
+            container.innerHTML = '載入失敗，請稍後再試';
+        }
     }
+}
+
+
+// 載入活動詳細資訊（活動DDetail）
+export async function loadEventDDetail(eventID) {
+    const container = document.querySelector('#eventDDetail');
+    const fields = container.querySelectorAll('.field .rightItem');
+    const title = container.querySelector('h2.title');
+
+    if (!eventID || !fields || fields.length < 4) {
+        console.warn("欄位數量不足或 eventID 錯誤");
+        return;
+    }
+
+    try {
+        const eventRef = doc(db, "events", eventID);
+        const eventSnap = await getDoc(eventRef);
+        if (!eventSnap.exists()) {
+            title.textContent = "找不到活動資料";
+            return;
+        }
+
+        const eventData = eventSnap.data();
+        title.textContent = eventData.eventName || "無名稱";
+
+        // 活動ID
+        fields[0].textContent = eventID;
+
+        // 舉辦時間
+        const createdAt = eventData.createdAt?.toDate?.();
+        fields[1].textContent = createdAt
+            ? `${createdAt.getFullYear()}/${createdAt.getMonth() + 1}/${createdAt.getDate()}`
+            : "未知";
+
+        // 參加人數與打卡人數
+        const participantsRef = collection(db, "events", eventID, "participants");
+        const participantsSnap = await getDocs(participantsRef);
+        const total = participantsSnap.size;
+        let checkedIn = 0;
+
+        participantsSnap.forEach(doc => {
+            const data = doc.data();
+            if (data.checkStatus && data.checkStatus !== '未打卡') {
+                checkedIn++;
+            }
+        });
+
+        fields[2].textContent = total;
+        fields[3].textContent = checkedIn;
+
+        // 新增：設定 exitEvent 按鈕文字與刪除活動事件綁定
+        const exitEventBtn = container.querySelector('.exitEvent');
+        if (exitEventBtn) {
+            exitEventBtn.textContent = "刪除活動";
+            exitEventBtn.style.cursor = "pointer";
+            // 只保留一個事件處理器，防止重複綁定
+            exitEventBtn.onclick = async () => {
+                const confirmed = confirm('確定要刪除活動嗎？');
+                if (confirmed) {
+                    try {
+                        const userUID = localStorage.getItem('userUID');
+                        if (!userUID) throw new Error("使用者未登入");
+
+                        await deleteDoc(doc(db, "events", eventID));
+                        await deleteDoc(doc(db, "users", userUID, "hostedEvents", eventID));
+
+                        toggleSection('manageEvent');
+                        alert('活動已成功刪除');
+                    } catch (e) {
+                        console.error("刪除活動失敗：", e);
+                        alert('刪除活動失敗，請稍後再試');
+                    }
+                }
+            };
+        }
+
+    } catch (err) {
+        console.error("讀取活動詳細資訊失敗：", err);
+    }
+}
+
+function adjustEventDateVisibility() {
+    const isMobile = window.innerWidth <= 768;
+    document.querySelectorAll('.eventDateToggle').forEach(el => {
+        el.style.display = isMobile ? 'none' : '';
+    });
 }
