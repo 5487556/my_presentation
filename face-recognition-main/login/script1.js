@@ -181,7 +181,7 @@ function login() {
                 container.classList.add("expand");
 
                 setTimeout(() => {
-                    window.location.href = "https://harrylin0312.github.io/face-recognition/start/";
+                    window.location.href = "../start/";
                 }, 1500);
             }, 1000);
         })

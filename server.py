@@ -214,7 +214,7 @@ async def handler(websocket):
 # 6. 啟動 Server
 # =============================================================================
 async def main():
-    port=int(os.getenv('PORT','8765'))
+    port=int(os.getenv('PORT','8080'))
     await websockets.serve(handler,'0.0.0.0',port,process_request=process_request)
     await asyncio.Future()
 

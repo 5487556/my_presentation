@@ -6,7 +6,7 @@ export async function loadEventManagement() {
     const container = document.getElementById('eventManagementList');
 
     if (!userUID) {
-        container.innerHTML = '尚未登入，請先 <a href="#" class="animated-link" data-url="https://harrylin0312.github.io/face-recognition/login/" style="color:red;">登入</a>';
+        container.innerHTML = '尚未登入，請先 <a href="#" class="animated-link" data-url="../login/" style="color:red;">登入</a>';
         return;
     }
 
